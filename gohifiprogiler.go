@@ -141,15 +141,6 @@ func main() {
 		}
 		return fp.Sync() // fsync
 		}
-	
-	// adding the struct and the chan for the sql database make
-	type sequenceset struct {
-		// a type interface for the fyne application. 
-		header string
-		sequence string 
-		length []int 
-		mer [][]string
 	}
-
 		
 }

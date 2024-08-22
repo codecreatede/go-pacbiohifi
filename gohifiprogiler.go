@@ -29,12 +29,12 @@ func main() {
 	argskmer := os.Args[3:]
 	if err != nil {
 		panic (err)
-		log.Fatal(err)
+		log.Fatal(err.Error())
 		return
 	}
 	readfile, err := os.Open(argsread)
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 		log.Fatal(err)
 		return
 	}

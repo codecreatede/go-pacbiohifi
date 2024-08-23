@@ -18,6 +18,7 @@ import (
 	"os"
 	"strings"
 	_ "github.com/go-sql-driver/mysql" // adding the mysql driver so that it can interact with HUGO as a frontend. 
+	"" // adding the support for the charts plotting
 )
 
 func main() {

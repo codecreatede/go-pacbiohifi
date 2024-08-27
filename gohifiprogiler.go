@@ -60,7 +60,7 @@ func main() {
 
 	for i := range sequences {
 		// this will prepare all the mers from all the sequences and not the sequence specific.
-		for j := 0; j <= len(sequences[i])-2; j++ {
+		for j := 0; j <= len(sequences[i])-argskmer; j++ {
 			seqtok = append(seqtok, string(sequences[i][j:j+argskmer]))
 		}
 	}

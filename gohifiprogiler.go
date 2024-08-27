@@ -23,43 +23,29 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	// adding the mysql driver so that it can interact with HUGO as a frontend.
 	// adding the support for the charts plotting
+	/*
+	 Task to do:
+	 1. Add the support for the mapping of the HiC to the PacbioHifi
+	 2. Extracting the graphs
+	 3. Making a linkedlist for the graphs and implementing a LIFO on the sequence based nodes.
+	 4. implementing the http/net module for redireting the reads and the alignments to the browsers and integrating a browser based plot for the visualization.
+	 4. big check if any.
+	 */
 )
 
 func main() {
-
-	// adding here also cobra cli and flags and help menu 
 
 	argsread := os.Args[1:]
 	argswrite := os.Args[2:]
 	argskmer := os.Args[3:]
 	argsinput1 := os.Args[4:]
 	argsinput2 := os.Args[5:]
-
-	if err != nil {
-		panic (err)
-		log.Fatal(err.Error())
-		return
-	}
-	readfile, err := os.Open(argsread)
-	if err != nil {
-		panic(err.Error())
-		log.Fatal(err)
-		return
-	}
-	argsinput1 := os.Args[1:]
-	argsinput2 := os.Args[2:]
-	argsoutput1 := os.Args[3:]
-	argsoutput2 := os.Args[4:]
-	if argsinput1 || argsinput2 || argsinput3 || argsinput4 == nil {
-		panic(err)
-		log.Fatal(err.Error.new("The arguments cant be empty"))
-	}
-
-	readbuffer := bufio.NewScanner(readfile)
+	readbuffer := bufio.NewScanner(argsread)
 	header := []string{}
 	sequences := []string{}
 	header := []string{}
 	sequences := []string{}
+
 	for readbuffer.Scan() {
 		line := readbuffer.Text()
 		if string(line[0]) == "A" || string(line[0]) == "T" || string(line[0]) == "G" || string(line[0]) == "C" {
@@ -71,20 +57,21 @@ func main() {
 	}
 
 	seqtok := []string{}
+
 	for i := range sequences {
 		// this will prepare all the mers from all the sequences and not the sequence specific.
 		for j := 0; j <= len(sequences[i])-2; j++ {
-			seqtok = append(seqtok, string(sequences[i][j:j+2]))
+			seqtok = append(seqtok, string(sequences[i][j:j+argskmer]))
 		}
 	}
 
 	mapmer := make(map[string]string)
-	// this will a map of the sequences to act as a getter. 
+
+	// this will a map of the sequences to act as a getter.
 	for i := range header {
 			mapmer[string(header[i])] = string(sequences[i])
 		}
 
-		// a anonymous function that will act as a callback in getting the density plot. 
 	seqCount := []int{}
 	seqHeaders := []string{}
 	seqgcCount := []int{}
@@ -130,42 +117,23 @@ func main() {
 		fmt.Println("The filtered kmers with the elective selection are %s 
 		                   and their length are %T:", string(filteredKmer[i]), len(string(filteredKmer[i])))
 	}
-	
-	func savemers(argswrite string, kmercomp []byte) error {
-		// adding a file save function to save each information before the final build release. 
-		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
-		if err != nil {
+	// adding a file save function to save each information before the final build release.
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
+	if err != nil {
 		return err
 		}
-		defer file.Close()
-		_, err = file.Write(data)
-		if err != nil {
+	defer file.Close()
+	_, err = file.Write(data)
+	if err != nil {
 		return err
-		}
-		return fp.Sync() // fsync
-		}
-	
-	func savefilteredKmer(argskmer string, kmercomp []byte) error {
-		// adding a file save function to save each information before the final build release. 
-		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
-		if err != nil {
-		return err
-		}
-		defer file.Close()
-		_, err = file.Write(data)
-		if err != nil {
-		return err
-		}
-		return fp.Sync() // fsync
-		}
+	}
+	return fp.Sync()
 	}
 
-	/*
-	  adding the support for the hybrid check for the assembly of the pacbiohifi and the illumina reads
-	 */
-		
-	open1 := bufio.NewScanner(readinput1)
-	open2 := bufio.NewScanner(readinput2)
+       // adding the support for the hybrid check for the assembly of the pacbiohifi and the illumina reads
+
+	open1 := bufio.NewScanner(argsinput1)
+	open2 := bufio.NewScanner(argsinput2)
 
 	openinputH1 := []string{}
 	openinputSeq1 := []string{}

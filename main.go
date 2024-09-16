@@ -16,33 +16,31 @@ package main
 
 import (
 	"bufio"
-	"net/http"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strings"
-	_ "github.com/go-sql-driver/mysql"
-	/*
-	 Takes a pacbiohifi and profiles all the information from the same.
-	 */
 )
 
 func main() {
+	argsRead := flag.String("readfile", "path to the readfile", "file")
+	argsWrite := flag.String("writefasta", "path to the readfile", "file")
+	argsKmer := flag.Int("kmer for the kmer values", 10, "kmer which you want to profile")
+	flag.Parse()
 
-	argsread := os.Args[1:]
-	argswrite := os.Args[2:]
-	argskmer := os.Args[3:]
-	argsinput1 := os.Args[4:]
-	argsinput2 := os.Args[5:]
-	readbuffer := bufio.NewScanner(argsread)
-	header := []string{}
-	sequences := []string{}
+	readOpen, err := os.Open(*argsRead)
+	if err != nil {
+		log.Fatal(err)
+	}
+	readbuffer := bufio.NewScanner(readOpen)
 	header := []string{}
 	sequences := []string{}
 
 	for readbuffer.Scan() {
 		line := readbuffer.Text()
-		if string(line[0]) == "A" || string(line[0]) == "T" || string(line[0]) == "G" || string(line[0]) == "C" {
+		if string(line[0]) == "A" || string(line[0]) == "T" || string(line[0]) == "G" ||
+			string(line[0]) == "C" {
 			sequences = append(sequences, line)
 		}
 		if string(line[0]) == "@" {
@@ -50,39 +48,57 @@ func main() {
 		}
 	}
 
+	// this will prepare all the mers from all the sequences and not the sequence specific.
 	seqtok := []string{}
 
 	for i := range sequences {
-		// this will prepare all the mers from all the sequences and not the sequence specific.
-		for j := 0; j <= len(sequences[i])-int(argskmer); j++ {
-			seqtok = append(seqtok, string(sequences[i][j:j+int(argskmer)]))
+		for j := 0; j <= len(sequences[i])-int(*argsKmer); j++ {
+			seqtok = append(seqtok, string(sequences[i][j:j+int(*argsKmer)]))
 		}
 	}
 
+	// this will make a map of the sequence to act as a getter
 	mapmer := make(map[string]string)
 
-	// this will a map of the sequences to act as a getter.
 	for i := range header {
-			mapmer[string(header[i])] = string(sequences[i])
-		}
+		mapmer[string(header[i])] = string(sequences[i])
+	}
 
 	seqCount := []int{}
 	seqHeaders := []string{}
 	seqgcCount := []int{}
 	seqplot := []int{}
-	for i,j := range mapmer {
-			seqHeaders = append(seqHeaders,i)
-			seqCount = append(seqCount, (strings.Count(mapmer[i], "A")+ strings.Count(mapmer[i], "T")+strings.Count(mapmer[i], "G")+strings.Count(mapmer[i], "C")))
-		    seqgcCount = append(seqgcCount, strings.Count(mapmer[i], "G")+strings.Count(mapmer[i], "C"))
-		}
-	for i := range  seqgcCount {
-			seqplot = append(seqplot, int(seqgcCount[i])/int(seqCount[i]))
-		}
+	for i := range mapmer {
+		seqHeaders = append(seqHeaders, i)
+		seqCount = append(
+			seqCount,
+			(strings.Count(mapmer[i], "A") + strings.Count(mapmer[i], "T") + strings.Count(mapmer[i], "G") + strings.Count(mapmer[i], "C")),
+		)
+		seqgcCount = append(seqgcCount, strings.Count(mapmer[i], "G")+strings.Count(mapmer[i], "C"))
+	}
+	for i := range seqgcCount {
+		seqplot = append(seqplot, int(seqgcCount[i])/int(seqCount[i]))
+	}
 
 	kmercomp := []int{}
 	for i := range seqtok {
 		hold := string(seqtok[i])
-		kmercomp = append(kmercomp, strings.Count(hold, "A")+strings.Count(hold, "T")+strings.Count(hold, "G")+strings.Count(hold, "C"))
+		kmercomp = append(
+			kmercomp,
+			strings.Count(
+				hold,
+				"A",
+			)+strings.Count(
+				hold,
+				"T",
+			)+strings.Count(
+				hold,
+				"G",
+			)+strings.Count(
+				hold,
+				"C",
+			),
+		)
 	}
 
 	kmercompGC := []int{}
@@ -108,18 +124,20 @@ func main() {
 	}
 
 	for i := range filteredKmer {
-		fmt.Println("The filtered kmers with the elective selection are %s and their length are %T:", string(filteredKmer[i]), len(string(filteredKmer[i])))
+		fmt.Println(
+			"The filtered kmers with the elective selection are %s and their length are %T:",
+			string(filteredKmer[i]),
+			len(string(filteredKmer[i])),
+		)
 	}
 	// adding a file save function to save each information before the final build release.
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
+	file, err := os.OpenFile(*argsWrite, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
 	if err != nil {
-		return err
-		}
-  defer file.Close()
-	_, err = file.Write(data)
-	if err != nil {
-		return err
+		log.Fatal(err)
 	}
-	return fp.Sync()
+	defer file.Close()
+	_, err = file.Write(seqtok)
+	if err != nil {
+		log.Fatal(err)
 	}
 }

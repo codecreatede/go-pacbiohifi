@@ -16,20 +16,46 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	argsRead := flag.String("readfile", "path to the readfile", "file")
-	argsWrite := flag.String("writefasta", "path to the readfile", "file")
-	argsKmer := flag.Int("kmer for the kmer values", 10, "kmer which you want to profile")
-	flag.Parse()
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+}
 
-	readOpen, err := os.Open(*argsRead)
+var (
+	inputfile  string
+	outputfile string
+	kmer       int
+	kmerremove float64
+)
+
+var rootCmd = &cobra.Command{
+	Use:  "flags",
+	Long: "This is a pacbiohifi streamline reader, which will tell you about how your sequencing pacbiohifi looks. You can give the reads from the fastq or you can give the pacbio bam file from the sequencing",
+	Run:  flagFunc,
+}
+
+func init() {
+	rootCmd.Flags().
+		StringVarP(&inputfile, "inputfile", "i", "path to the inputfile", "inputfile path to be given")
+	rootCmd.Flags().
+		StringVarP(&outputfile, "ouputfile", "o", "path to the outputfile", "outputfile to be given")
+	rootCmd.Flags().IntVarP(&kmer, "kmer", "k", 4, "kmer to be used for the analysis")
+	rootCmd.Flags().
+		Float64VarP(&kmerremove, "kmerremove", "d", 0.3, "kmer with this compositon to be removed")
+}
+
+func flagFunc(cmd *cobra.Command, args []string) {
+	readOpen, err := os.Open(inputfile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,96 +74,90 @@ func main() {
 		}
 	}
 
-	// this will prepare all the mers from all the sequences and not the sequence specific.
 	seqtok := []string{}
 
 	for i := range sequences {
-		for j := 0; j <= len(sequences[i])-int(*argsKmer); j++ {
-			seqtok = append(seqtok, string(sequences[i][j:j+int(*argsKmer)]))
+		for j := 0; j <= len(sequences[i])-int(kmer); j++ {
+			seqtok = append(seqtok, string(sequences[i][j:j+int(kmer)]))
 		}
-	}
-
-	// this will make a map of the sequence to act as a getter
-	mapmer := make(map[string]string)
-
-	for i := range header {
-		mapmer[string(header[i])] = string(sequences[i])
-	}
-
-	seqCount := []int{}
-	seqHeaders := []string{}
-	seqgcCount := []int{}
-	seqplot := []int{}
-	for i := range mapmer {
-		seqHeaders = append(seqHeaders, i)
-		seqCount = append(
-			seqCount,
-			(strings.Count(mapmer[i], "A") + strings.Count(mapmer[i], "T") + strings.Count(mapmer[i], "G") + strings.Count(mapmer[i], "C")),
-		)
-		seqgcCount = append(seqgcCount, strings.Count(mapmer[i], "G")+strings.Count(mapmer[i], "C"))
-	}
-	for i := range seqgcCount {
-		seqplot = append(seqplot, int(seqgcCount[i])/int(seqCount[i]))
 	}
 
 	kmercomp := []int{}
 	for i := range seqtok {
-		hold := string(seqtok[i])
-		kmercomp = append(
-			kmercomp,
-			strings.Count(
-				hold,
-				"A",
-			)+strings.Count(
-				hold,
-				"T",
-			)+strings.Count(
-				hold,
-				"G",
-			)+strings.Count(
-				hold,
-				"C",
-			),
+		storestring := strings.Count(
+			string(seqtok[i]),
+			"A",
+		) + strings.Count(
+			string(seqtok[i]),
+			"T",
+		) + strings.Count(
+			string(seqtok[i]),
+			"G",
+		) + strings.Count(
+			string(seqtok[i]),
+			"C",
 		)
+		kmercomp = append(kmercomp, storestring)
 	}
 
-	kmercompGC := []int{}
+	kmerGC := []int{}
 	for i := range seqtok {
-		hold := string(seqtok[i])
-		kmercomp = append(kmercomp, strings.Count(hold, "G")+strings.Count(hold, "C"))
+		storestring := strings.Count(
+			string(seqtok[i]),
+			"G",
+		) + strings.Count(
+			string(seqtok[i]),
+			"C",
+		)
+		kmerGC = append(kmerGC, storestring)
 	}
 
-	kmerclassify := []string{}
-	kmerfilter := []int{}
-	for i := range seqtok {
-		kmerclassify = append(kmerclassify, seqtok[i])
-		kmerfilter = append(kmerfilter, int(kmercompGC[i])/int(kmercomp[i]))
+	kmerProfile := []float64{}
+
+	for i := range kmercomp {
+		kmerProfile = append(kmerProfile, float64(kmerGC[i])/float64(kmercomp[i]))
 	}
 
 	filteredKmer := []string{}
-	for i := range kmerclassify {
-		// mention the threshold for the filtering of the low kmers.
-		// default value set to 10 and fyne GO application allows to select based on the plotting graph.
-		if kmerfilter[i] < 10 {
-			filteredKmer = append(filteredKmer, kmerclassify[i])
+
+	for i := range kmerProfile {
+		if kmerProfile[i] <= kmerremove {
+			continue
+		} else {
+			filteredKmer = append(filteredKmer, seqtok[i])
 		}
 	}
 
 	for i := range filteredKmer {
-		fmt.Println(
-			"The filtered kmers with the elective selection are %s and their length are %T:",
-			string(filteredKmer[i]),
-			len(string(filteredKmer[i])),
-		)
+		fmt.Println(filteredKmer[i])
 	}
-	// adding a file save function to save each information before the final build release.
-	file, err := os.OpenFile(*argsWrite, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
+
+	file, err := os.Create("allprofiledKmers.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer file.Close()
-	_, err = file.Write(seqtok)
+
+	for i := range seqtok {
+		_, err := file.WriteString(
+			seqtok[i] + "\n")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	file1, err := os.Create("filteredKmer.txt")
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	defer file1.Close()
+
+	for i := range filteredKmer {
+		_, err := file1.WriteString(filteredKmer[i] + "\n")
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }

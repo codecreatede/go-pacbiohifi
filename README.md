@@ -1,4 +1,4 @@
-# go-hifi-profiler
+# go-pacbiohifi
 
 - Profiling of the pacbiohifi reads, making mers and selective filtering of the mers based on composition for better sort and filtering of the kmers and hapmers. 
 

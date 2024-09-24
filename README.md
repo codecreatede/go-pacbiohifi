@@ -1,7 +1,6 @@
 # go-hifi-profiler
 
-- Profiling of the pacbiohifi reads, making mers and selective filtering of the mers based on composition for better sort.
-
+- Profiling of the pacbiohifi reads, making mers and selective filtering of the mers based on composition for better sort and filtering of the kmers and hapmers. 
 
 ```
 [gauravsablok@ultramarine]~/Desktop/codecreatede/golang/go-pacbiohifi% \

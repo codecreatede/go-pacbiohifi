@@ -82,6 +82,28 @@ func flagFunc(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	/*
+	   This is the code that i was talking about, here i am doing the same as the seqtok but insteading of putting all the slice
+	   in one, i am making the slices for each sequence separately and adding them to the header which defines the sequence id
+	   and the seq, which defines the associated slices. headers and sequences are both defined upstream.
+
+	   	type seqtokStruct {
+	   		header string
+	   		seq []string
+	   	}
+	   	 seqtokMulti := []seqtokStruct{}
+
+	   	for i := range sequences {
+	   		for j := 0; j <= len(sequences[i])-int(kmer); j++ {
+	   			seqtokMulti = append(seqtokMulti, seqtokStruct{
+	   				header: string(line)
+	   				seq: string(sequences[i][j:j+int(kmer)]) // this doesnt work and if i change to
+	   				   seq: append(seq, string(sequence)[i][j:j+int(kmer)]) then it doesnt take the string struct.
+	   			})
+	   		}
+	   	}
+	*/
+
 	kmercomp := []int{}
 	for i := range seqtok {
 		storestring := strings.Count(
